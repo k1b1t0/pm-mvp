@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Money Backward — Quản lý tài chính phong cách Apple</title>
+  <meta name="description" content="Ứng dụng quản lý tài chính cá nhân tối giản phong cách Apple Things 3.">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar (Things 3 style) -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="app-logo">
+          <span class="logo-icon"></span>
+          <span class="logo-text">Money Backward</span>
+        </div>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <button class="nav-item active" id="nav-dashboard" data-tab="tab-dashboard" aria-label="Tổng quan">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Tổng quan</span>
+        </button>
+        <button class="nav-item" id="nav-incomes" data-tab="tab-incomes" aria-label="Thu nhập">
+          <span class="nav-icon">💰</span>
+          <span class="nav-label">Khoản thu nhập</span>
+        </button>
+        <button class="nav-item" id="nav-expenses" data-tab="tab-expenses" aria-label="Chi tiêu">
+          <span class="nav-icon">💸</span>
+          <span class="nav-label">Khoản chi tiêu</span>
+        </button>
+        <button class="nav-item" id="nav-savings" data-tab="tab-savings" aria-label="Tiết kiệm & Cài đặt">
+          <span class="nav-icon">🎯</span>
+          <span class="nav-label">Mục tiêu & Cấu hình</span>
+        </button>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <div class="user-profile-badge">
+          <div class="avatar">MB</div>
+          <div class="user-info">
+            <span class="user-name">Người dùng Demo</span>
+            <span class="user-role">Hạn mức & Tiết kiệm</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content">
+      <!-- System Notification Banner (Hidden by default, shown when budget limit exceeded) -->
+      <div id="budget-warning-banner" class="warning-banner" role="alert" style="display: none;">
+        <span class="warning-icon">⚠️</span>
+        <span class="warning-message">Cảnh báo: Tổng chi tiêu trong tháng đã vượt quá hạn mức chi tiêu cho phép!</span>
+        <button id="close-warning-btn" class="warning-close-btn" aria-label="Đóng cảnh báo">&times;</button>
+      </div>
+
+      <!-- Module 1: Dashboard Section -->
+      <section id="tab-dashboard" class="app-section active">
+        <div class="page-header">
+          <h1 class="page-title">Tổng quan tài chính</h1>
+          <span class="page-subtitle" id="current-date-subtitle">Tháng này</span>
+        </div>
+
+        <!-- 3 Metric Widgets -->
+        <div class="metrics-grid">
+          <div class="metric-card income-theme">
+            <div class="metric-label">Tổng thu nhập</div>
+            <div class="metric-value" id="dashboard-total-income">0 đ</div>
+            <div class="metric-footer">Tất cả các nguồn thu</div>
+          </div>
+          
+          <div class="metric-card expense-theme">
+            <div class="metric-label">Tổng chi tiêu</div>
+            <div class="metric-value" id="dashboard-total-expense">0 đ</div>
+            <div class="metric-footer">Học tập, ăn uống & giải trí</div>
+          </div>
+          
+          <div class="metric-card balance-theme">
+            <div class="metric-label">Số dư hiện tại</div>
+            <div class="metric-value" id="dashboard-balance">0 đ</div>
+            <div class="metric-footer">Tiền khả dụng thực tế</div>
+          </div>
+        </div>
+
+        <!-- Budget Limit Progress Bar -->
+        <div class="section-card">
+          <div class="section-card-header">
+            <h2 class="section-title">Hạn mức chi tiêu tháng</h2>
+            <span class="section-badge" id="budget-ratio-text">0%</span>
+          </div>
+          <div class="budget-progress-container">
+            <div class="progress-bar-track">
+              <div id="budget-progress-bar" class="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+            <div class="budget-limits-label">
+              <span id="budget-spent-text">Đã chi: 0 đ</span>
+              <span id="budget-limit-text">Hạn mức: 0 đ</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="section-card">
+          <div class="section-card-header">
+            <h2 class="section-title">Phân rã chi phí theo danh mục</h2>
+          </div>
+          <div class="chart-container">
+            <canvas id="expense-pie-chart" aria-label="Biểu đồ chi tiêu theo danh mục" role="img"></canvas>
+            <div id="no-chart-data-message" class="no-data-placeholder" style="display: none;">
+              <span>Chưa có dữ liệu chi tiêu để hiển thị biểu đồ. Hãy thêm khoản chi tiêu mới!</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 2: Income Manager Section -->
+      <section id="tab-incomes" class="app-section">
+        <div class="page-header">
+          <h1 class="page-title">Quản lý thu nhập</h1>
+          <span class="page-subtitle">Ghi nhận các nguồn tiền vào</span>
+        </div>
+
+        <!-- Add Income Form (Apple Pop-over Style Card) -->
+        <div class="section-card form-card">
+          <div class="section-card-header">
+            <h2 class="section-title">Thêm khoản thu mới</h2>
+          </div>
+          <form id="income-form" class="apple-form" novalidate>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="income-title" class="form-label">Tên khoản thu</label>
+                <input type="text" id="income-title" class="input" placeholder="Ví dụ: Lương tháng 6, Freelance..." required>
+                <span class="error-msg" id="err-income-title">Vui lòng nhập tên khoản thu</span>
+              </div>
+              <div class="form-group">
+                <label for="income-source" class="form-label">Nguồn thu</label>
+                <input type="text" id="income-source" class="input" placeholder="Ví dụ: Công ty A, Khách hàng..." required>
+                <span class="error-msg" id="err-income-source">Vui lòng nhập nguồn thu</span>
+              </div>
+              <div class="form-group">
+                <label for="income-amount" class="form-label">Số tiền (VNĐ)</label>
+                <input type="number" id="income-amount" class="input" min="1" placeholder="Ví dụ: 8000000" required>
+                <span class="error-msg" id="err-income-amount">Vui lòng nhập số tiền hợp lệ (> 0)</span>
+              </div>
+              <div class="form-group">
+                <label for="income-date" class="form-label">Ngày nhận</label>
+                <input type="date" id="income-date" class="input" required>
+                <span class="error-msg" id="err-income-date">Vui lòng chọn ngày hợp lệ</span>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" id="submit-income-btn" class="btn btn-primary">Ghi nhận thu nhập</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Income List Card -->
+        <div class="section-card">
+          <div class="section-card-header">
+            <h2 class="section-title">Lịch sử thu nhập</h2>
+            <span class="section-badge" id="income-count-badge">0 mục</span>
+          </div>
+          <div class="list-card-container">
+            <div class="table-responsive">
+              <table class="apple-table" id="income-table">
+                <thead>
+                  <tr>
+                    <th>Ngày</th>
+                    <th>Tên khoản thu</th>
+                    <th>Nguồn thu</th>
+                    <th class="text-right">Số tiền</th>
+                    <th class="text-center">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="income-list-tbody">
+                  <!-- Dynamic rows go here -->
+                </tbody>
+              </table>
+            </div>
+            <div id="no-income-placeholder" class="no-data-placeholder">
+              <span>Chưa có khoản thu nhập nào được ghi nhận.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 3: Expense Manager Section -->
+      <section id="tab-expenses" class="app-section">
+        <div class="page-header">
+          <h1 class="page-title">Quản lý chi tiêu</h1>
+          <span class="page-subtitle">Theo dõi các khoản tiền ra</span>
+        </div>
+
+        <!-- Add Expense Form (Apple Pop-over Style Card) -->
+        <div class="section-card form-card">
+          <div class="section-card-header">
+            <h2 class="section-title">Thêm khoản chi mới</h2>
+          </div>
+          <form id="expense-form" class="apple-form" novalidate>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="expense-title" class="form-label">Tên khoản chi</label>
+                <input type="text" id="expense-title" class="input" placeholder="Ví dụ: Tiền nhà, Ăn tối..." required>
+                <span class="error-msg" id="err-expense-title">Vui lòng nhập tên khoản chi</span>
+              </div>
+              <div class="form-group">
+                <label for="expense-amount" class="form-label">Số tiền (VNĐ)</label>
+                <input type="number" id="expense-amount" class="input" min="1" placeholder="Ví dụ: 3500000" required>
+                <span class="error-msg" id="err-expense-amount">Vui lòng nhập số tiền hợp lệ (> 0)</span>
+              </div>
+              <div class="form-group">
+                <label for="expense-category" class="form-label">Danh mục phân loại</label>
+                <select id="expense-category" class="input" required>
+                  <option value="" disabled selected>Chọn danh mục</option>
+                  <option value="Ăn uống">🍲 Ăn uống</option>
+                  <option value="Di chuyển">🚗 Di chuyển</option>
+                  <option value="Học tập & Sinh hoạt">📚 Học tập & Sinh hoạt</option>
+                  <option value="Giải trí">🎬 Giải trí</option>
+                  <option value="Khác">🏷️ Khác</option>
+                </select>
+                <span class="error-msg" id="err-expense-category">Vui lòng chọn một danh mục</span>
+              </div>
+              <div class="form-group">
+                <label for="expense-date" class="form-label">Ngày chi</label>
+                <input type="date" id="expense-date" class="input" required>
+                <span class="error-msg" id="err-expense-date">Vui lòng chọn ngày hợp lệ</span>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" id="submit-expense-btn" class="btn btn-primary">Ghi nhận chi tiêu</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Expense List Card -->
+        <div class="section-card">
+          <div class="section-card-header">
+            <h2 class="section-title">Lịch sử chi tiêu</h2>
+            <span class="section-badge" id="expense-count-badge">0 mục</span>
+          </div>
+          <div class="list-card-container">
+            <div class="table-responsive">
+              <table class="apple-table" id="expense-table">
+                <thead>
+                  <tr>
+                    <th>Ngày</th>
+                    <th>Tên khoản chi</th>
+                    <th>Danh mục</th>
+                    <th class="text-right">Số tiền</th>
+                    <th class="text-center">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="expense-list-tbody">
+                  <!-- Dynamic rows go here -->
+                </tbody>
+              </table>
+            </div>
+            <div id="no-expense-placeholder" class="no-data-placeholder">
+              <span>Chưa có khoản chi tiêu nào được ghi nhận.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 4: Savings Target & Profile Settings Section -->
+      <section id="tab-savings" class="app-section">
+        <div class="page-header">
+          <h1 class="page-title">Mục tiêu & Cấu hình</h1>
+          <span class="page-subtitle">Thiết lập hạn mức chi tiêu và tích lũy tiết kiệm</span>
+        </div>
+
+        <!-- Savings Progress & Status Card -->
+        <div class="section-card">
+          <div class="section-card-header">
+            <h2 class="section-title">Tiến độ mục tiêu tiết kiệm</h2>
+            <span class="chip chip-accent" id="savings-status-badge">Đang tích lũy</span>
+          </div>
+          
+          <div class="savings-progress-wrapper">
+            <div class="savings-metrics">
+              <div class="savings-metric">
+                <span class="s-label">Đã tích lũy</span>
+                <span class="s-value" id="savings-current-val">0 đ</span>
+              </div>
+              <div class="savings-metric text-right">
+                <span class="s-label">Mục tiêu tháng</span>
+                <span class="s-value" id="savings-goal-val">0 đ</span>
+              </div>
+            </div>
+            
+            <div class="progress-bar-track large-bar">
+              <div id="savings-progress-bar" class="progress-bar-fill savings-theme" style="width: 0%;"></div>
+            </div>
+            
+            <div class="savings-status-desc" id="savings-remaining-desc">
+              Còn thiếu: <strong>0 đ</strong> để hoàn thành mục tiêu tài chính của bạn.
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile & Settings Form (Apple Style Card) -->
+        <div class="section-card form-card">
+          <div class="section-card-header">
+            <h2 class="section-title">Cấu hình ngân sách & Tiết kiệm</h2>
+          </div>
+          <form id="profile-form" class="apple-form" novalidate>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="profile-budget-limit" class="form-label">Hạn mức chi tiêu tháng (VNĐ)</label>
+                <input type="number" id="profile-budget-limit" class="input" min="0" placeholder="Ví dụ: 5000000" required>
+                <span class="error-msg" id="err-profile-budget-limit">Nhập hạn mức chi tiêu hợp lệ (>= 0)</span>
+              </div>
+              <div class="form-group">
+                <label for="profile-savings-goal" class="form-label">Mục tiêu tiết kiệm tháng (VNĐ)</label>
+                <input type="number" id="profile-savings-goal" class="input" min="0" placeholder="Ví dụ: 2000000" required>
+                <span class="error-msg" id="err-profile-savings-goal">Nhập mục tiêu tiết kiệm hợp lệ (>= 0)</span>
+              </div>
+              <div class="form-group">
+                <label for="profile-current-savings" class="form-label">Khoản tiết kiệm hiện có (VNĐ)</label>
+                <input type="number" id="profile-current-savings" class="input" min="0" placeholder="Ví dụ: 500000" required>
+                <span class="error-msg" id="err-profile-current-savings">Nhập khoản tiết kiệm hiện tại hợp lệ (>= 0)</span>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" id="save-profile-btn" class="btn btn-primary">Lưu cấu hình</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Danger Zone (Reset Data) -->
+        <div class="section-card border-danger">
+          <div class="section-card-header">
+            <h2 class="section-title text-danger">Vùng nguy hiểm</h2>
+          </div>
+          <div class="danger-zone-desc">
+            <p>Hành động này sẽ xóa toàn bộ dữ liệu giao dịch thu nhập, chi tiêu và cấu hình hiện tại trong trình duyệt của bạn. Thao tác này không thể hoàn tác.</p>
+          </div>
+          <div class="form-actions align-left">
+            <button id="reset-all-data-btn" class="btn btn-destructive">Xóa tất cả dữ liệu</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Custom Alert Overlay (Apple-style system alert box) -->
+  <div id="apple-alert-overlay" class="alert-overlay" style="display: none;">
+    <div class="apple-alert-box">
+      <div class="alert-body">
+        <h3 class="alert-title" id="alert-box-title">Thông báo</h3>
+        <p class="alert-text" id="alert-box-message">Nội dung thông báo chi tiết xuất hiện ở đây.</p>
+      </div>
+      <div class="alert-footer">
+        <button id="alert-ok-btn" class="alert-btn">Đồng ý</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmation Dialog Overlay -->
+  <div id="apple-confirm-overlay" class="alert-overlay" style="display: none;">
+    <div class="apple-alert-box">
+      <div class="alert-body">
+        <h3 class="alert-title" id="confirm-box-title">Xác nhận</h3>
+        <p class="alert-text" id="confirm-box-message">Bạn có chắc chắn muốn thực hiện thao tác này không?</p>
+      </div>
+      <div class="alert-footer split-buttons">
+        <button id="confirm-cancel-btn" class="alert-btn secondary-alert-btn">Hủy bỏ</button>
+        <button id="confirm-ok-btn" class="alert-btn destructive-alert-btn">Đồng ý</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Core JavaScript -->
+  <script src="js/chart_config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

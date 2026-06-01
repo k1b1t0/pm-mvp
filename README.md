@@ -1,0 +1,85 @@
+# Money Backward — MVP Quản lý Tài chính Cá nhân
+
+**Money Backward** là một ứng dụng quản lý tài chính cá nhân tối giản dạng Single Page Application (SPA), được thiết kế theo ngôn ngữ thiết kế của Apple và lấy cảm hứng từ ứng dụng Things 3 nổi tiếng. 
+
+Dự án này là phiên bản sản phẩm khả dụng tối thiểu (MVP) được xây dựng hoàn toàn bằng **Vanilla HTML, CSS, và JavaScript**, không phụ thuộc vào framework hay backend phức tạp, giúp ứng dụng chạy cực nhẹ, trực quan và dễ dàng deploy lên **GitHub Pages**.
+
+---
+
+##  Giao diện và Phong cách Thiết kế (Apple & Things 3 Style)
+
+Ứng dụng tuân thủ nghiêm ngặt các nguyên lý thiết kế của Apple:
+* **Tối giản và Tập trung:** "Nội dung chính là giao diện". Khoảng trắng được thiết kế có ý đồ, các đường phân cách thanh mảnh, không có viền đậm hay đổ bóng quá đà.
+* **Hỗ trợ Dark Mode tự động:** Tự động điều chỉnh giao diện Sáng/Tối (Light/Dark mode) theo thiết lập hệ thống của thiết bị.
+* **Custom Dialogs:** Toàn bộ thông báo hệ thống (Alert, Confirm) đều được tùy biến theo phong cách hộp thoại bo góc mờ đặc trưng của macOS/iOS thay vì dùng các pop-up mặc định của trình duyệt.
+* **Phản hồi tương tác tinh tế:** Các hiệu ứng hover, focus trên các nút và trường nhập liệu hoạt động mượt mà, thời gian chuyển đổi tab nhanh dưới 220ms.
+
+---
+
+## 🌟 Các Tính năng Cốt lõi của MVP
+
+### 1. Dashboard Tổng quan (Thống kê & Hạn mức)
+* **Số liệu tức thời (Widgets):** Hiển thị ba thông số cốt lõi: Tổng thu nhập (màu xanh lá), Tổng chi tiêu (màu đỏ) và Số dư khả dụng hiện tại (màu xanh dương).
+* **Tiến độ hạn mức chi tiêu:** Thanh tiến trình trực quan biểu thị phần trăm chi tiêu so với hạn mức tháng. Nếu chi tiêu vượt quá 100% hạn mức, thanh tiến trình sẽ chuyển sang màu đỏ và kích hoạt banner cảnh báo khẩn cấp ở đầu trang.
+* **Biểu đồ danh mục chi phí:** Tích hợp biểu đồ tròn (Doughnut Chart) qua thư viện Chart.js để phân rã chi phí chi tiết theo các danh mục. Chú thích biểu đồ tự động đổi màu theo chế độ Light/Dark mode để đảm bảo tính dễ đọc.
+
+### 2. Quản lý Thu nhập (Income Manager)
+* **Form nhập liệu:** Hỗ trợ nhập Tên khoản thu, Nguồn thu, Số tiền (VNĐ) và Ngày nhận.
+* **Danh sách lịch sử:** Hiển thị dưới dạng bảng danh sách tối giản, tự động sắp xếp theo thứ tự ngày mới nhất. Cho phép xóa trực tiếp từng giao dịch thu nhập bằng nút xóa 🗑️ kèm hộp thoại xác nhận.
+
+### 3. Quản lý Chi tiêu (Expense Manager)
+* **Form nhập liệu:** Nhập Tên khoản chi, Số tiền (VNĐ), Danh mục phân loại cố định (Ăn uống, Di chuyển, Học tập & Sinh hoạt, Giải trí, Khác) và Ngày chi.
+* **Cảnh báo vượt hạn mức:** Khi ghi nhận một khoản chi mới làm tổng chi tiêu vượt quá hạn mức tháng, hệ thống lập tức hiển thị cảnh báo đẩy Things 3.
+
+### 4. Mục tiêu & Cấu hình Tiết kiệm (Savings & Profile)
+* **Tiến độ tích lũy:** Biểu thị phần trăm và số tiền còn thiếu để đạt mục tiêu tiết kiệm tháng. Khi số tiền tích lũy lớn hơn hoặc bằng mục tiêu, trạng thái sẽ tự động chuyển sang "Hoàn thành" kèm thông điệp chúc mừng.
+* **Cập nhật hồ sơ tài chính:** Cho phép thay đổi nhanh ba chỉ số cốt lõi bất kỳ lúc nào: Hạn mức chi tiêu tháng, Mục tiêu tiết kiệm tháng, Khoản tiết kiệm hiện có.
+* **Vùng nguy hiểm (Danger Zone):** Cung cấp tính năng "Xóa tất cả dữ liệu" giúp người dùng xóa sạch storage, reset ứng dụng về trạng thái ban đầu để kiểm thử lại từ đầu.
+
+---
+
+## 🛠️ Công nghệ Sử dụng & Lưu trữ dữ liệu
+
+1. **Frontend:** HTML5, CSS3 (sử dụng CSS Variables và phương pháp BEM), Vanilla JavaScript (ES6+).
+2. **Lưu trữ cục bộ:** Sử dụng `window.localStorage` với key duy nhất `FINANCE_MVP_DATA`. Dữ liệu giao dịch và cấu hình của bạn được lưu trực tiếp trong trình duyệt và không bị mất đi khi bạn nhấn F5 hoặc tải lại trang.
+3. **Thư viện Biểu đồ:** Chart.js (tải qua CDN).
+
+---
+
+## 📂 Cấu trúc Thư mục Dự án
+
+```text
+├── index.html          # File giao diện SPA chính (chứa HTML và cấu trúc layout)
+├── css/
+│   └── style.css       # Định dạng giao diện hệ thống (Apple/Things 3 style, Dark Mode)
+├── js/
+│   ├── app.js          # Xử lý Logic ứng dụng, quản lý state và sự kiện DOM
+│   └── chart_config.js # Cấu hình và render biểu đồ Chart.js thích ứng Dark Mode
+├── README.md           # Tài liệu hướng dẫn sử dụng nhanh (File này)
+├── explain.md          # Giải thích chi tiết về kỹ thuật (Đã được gitignore)
+└── .gitignore          # Cấu hình bỏ qua plan.md và explain.md khi git commit
+```
+
+---
+
+## 🚀 Hướng dẫn Cài đặt & Chạy ứng dụng
+
+Vì đây là dự án Web tĩnh chạy hoàn toàn ở client-side:
+
+### Cách 1: Chạy trực tiếp (Không cần cài đặt)
+Bạn chỉ cần click đúp vào file `index.html` trên máy tính để mở trực tiếp ứng dụng trong trình duyệt Chrome, Safari, Firefox hoặc Edge.
+
+### Cách 2: Chạy qua Live Server (Khuyên dùng)
+Nếu sử dụng VS Code, bạn có thể cài đặt Extension **Live Server**, sau đó chuột phải vào file `index.html` và chọn **Open with Live Server** để khởi chạy ứng dụng trên cổng local `http://127.0.0.1:5500`.
+
+---
+
+## 📝 Quy trình Kiểm thử (Demo Flow)
+
+Để trải nghiệm đầy đủ các tính năng trong bản Demo:
+1. Mở ứng dụng, kiểm tra dữ liệu mẫu đã có sẵn ở Dashboard (Số dư, Biểu đồ Doughnut).
+2. Chuyển sang tab **Mục tiêu & Cấu hình**, thay đổi Hạn mức chi tiêu tháng thành `2.000.000 đ` rồi bấm **Lưu cấu hình**.
+3. Quay lại Dashboard, kiểm tra xem thanh tiến trình hạn mức và cảnh báo hệ thống có xuất hiện cảnh báo vượt hạn mức hay không (vì tổng chi ban đầu là `3.500.000 đ` > `2.000.000 đ`).
+4. Thử thêm một Khoản thu mới tại tab **Thu nhập** và Khoản chi mới tại tab **Chi tiêu**. Kiểm tra xem biểu đồ và các số liệu Dashboard có tự động cập nhật ngay lập tức không.
+5. Thử bấm nút xóa 🗑️ trên một dòng giao dịch bất kỳ, đồng ý ở hộp thoại xác nhận và kiểm tra biến động số dư.
+6. Nhấn **F5** để tải lại trang, xác nhận dữ liệu của bạn không bị mất.
