@@ -1,12 +1,13 @@
 // Chart.js configuration for Money Backward MVP
 (function () {
-  let chartInstance = null;
+  let chartInstance = null; // Doughnut Chart
+  let barChartInstance = null; // Bar Chart
 
   // Colors for categories matching Apple styling
   const categoryColors = {
     "Ăn uống": "#FF9500",            // Orange
     "Di chuyển": "#007AFF",          // Blue
-    "Học tập & Sinh hoạt": "#34C759", // Green
+    "Học tập & Sinh hoạt": "#AF52DE", // Purple
     "Giải trí": "#FF3B30",           // Red
     "Khác": "#8E8E93"                // Grey
   };
@@ -17,7 +18,7 @@
     return isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)';
   }
 
-  // Helper to get grid line/separator colors if needed (not needed for Pie charts but good practice)
+  // Helper to get grid line/separator colors
   function getSeparatorColor() {
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     return isDark ? 'rgba(84, 84, 88, 0.4)' : 'rgba(60, 60, 67, 0.12)';
@@ -42,7 +43,6 @@
       }
     });
 
-    // Only return categories with amount > 0
     const labels = [];
     const data = [];
     const colors = [];
@@ -58,18 +58,16 @@
     return { labels, data, colors };
   }
 
-  // Update chart with new data
-  function updateChart(expenses) {
+  // Update Doughnut Chart (Expense Breakdown)
+  function updateDoughnutChart(expenses) {
     const canvas = document.getElementById('expense-pie-chart');
     const placeholder = document.getElementById('no-chart-data-message');
     
     if (!canvas) return;
 
-    // Filter out valid expenses
     const validExpenses = expenses.filter(e => Number(e.amount) > 0);
 
     if (validExpenses.length === 0) {
-      // Hide canvas, show placeholder
       canvas.style.display = 'none';
       if (placeholder) placeholder.style.display = 'flex';
       
@@ -80,7 +78,6 @@
       return;
     }
 
-    // Show canvas, hide placeholder
     canvas.style.display = 'block';
     if (placeholder) placeholder.style.display = 'none';
 
@@ -99,14 +96,12 @@
     const textColor = getTextColor();
 
     if (chartInstance) {
-      // Update existing chart to avoid stutter
       chartInstance.data.labels = labels;
       chartInstance.data.datasets[0].data = data;
       chartInstance.data.datasets[0].backgroundColor = colors;
       chartInstance.options.plugins.legend.labels.color = textColor;
       chartInstance.update();
     } else {
-      // Create new chart
       const ctx = canvas.getContext('2d');
       chartInstance = new Chart(ctx, {
         type: 'doughnut',
@@ -141,9 +136,7 @@
               callbacks: {
                 label: function(context) {
                   let label = context.label || '';
-                  if (label) {
-                    label += ': ';
-                  }
+                  if (label) label += ': ';
                   if (context.parsed !== null) {
                     label += new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(context.parsed);
                   }
@@ -152,7 +145,122 @@
               }
             }
           },
-          cutout: '65%' // Gives it the sleek doughnut style
+          cutout: '65%'
+        }
+      });
+    }
+  }
+
+  // Update Bar Chart (Comparison: Incomes vs Expenses vs Savings)
+  function updateBarChart(incomes, expenses, savings) {
+    const canvas = document.getElementById('comparison-bar-chart');
+    const placeholder = document.getElementById('no-bar-chart-data-message');
+    
+    if (!canvas) return;
+
+    const totalInc = incomes.reduce((sum, inc) => sum + Number(inc.amount || 0), 0);
+    const totalExp = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+    const totalSav = (savings || []).reduce((sum, sav) => sum + Number(sav.amount || 0), 0);
+
+    if (totalInc === 0 && totalExp === 0 && totalSav === 0) {
+      canvas.style.display = 'none';
+      if (placeholder) placeholder.style.display = 'flex';
+      
+      if (barChartInstance) {
+        barChartInstance.destroy();
+        barChartInstance = null;
+      }
+      return;
+    }
+
+    canvas.style.display = 'block';
+    if (placeholder) placeholder.style.display = 'none';
+
+    const textColor = getTextColor();
+    const separatorColor = getSeparatorColor();
+    const font = getComputedStyle(document.documentElement).getPropertyValue('--font').trim() || 'system-ui';
+
+    const barColors = [
+      getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#34C759',
+      getComputedStyle(document.documentElement).getPropertyValue('--red').trim() || '#FF3B30',
+      getComputedStyle(document.documentElement).getPropertyValue('--yellow').trim() || '#FFCC00'
+    ];
+
+    const chartData = [totalInc, totalExp, totalSav];
+
+    if (barChartInstance) {
+      barChartInstance.data.datasets[0].data = chartData;
+      barChartInstance.data.datasets[0].backgroundColor = barColors;
+      barChartInstance.options.scales.x.ticks.color = textColor;
+      barChartInstance.options.scales.y.ticks.color = textColor;
+      barChartInstance.options.scales.y.grid.color = separatorColor;
+      barChartInstance.update();
+    } else {
+      const ctx = canvas.getContext('2d');
+      barChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Thu nhập', 'Chi tiêu', 'Gửi tiết kiệm'],
+          datasets: [{
+            data: chartData,
+            backgroundColor: barColors,
+            borderRadius: 6,
+            borderWidth: 0,
+            maxBarThickness: 36
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) label += ': ';
+                  if (context.parsed.y !== null) {
+                    label += new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(context.parsed.y);
+                  }
+                  return label;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                color: textColor,
+                font: {
+                  family: font,
+                  size: 13,
+                  weight: '500'
+                }
+              }
+            },
+            y: {
+              grid: {
+                color: separatorColor
+              },
+              ticks: {
+                color: textColor,
+                font: {
+                  family: font,
+                  size: 11
+                },
+                callback: function(value) {
+                  if (value >= 1000000) return (value / 1000000) + 'M';
+                  if (value >= 1000) return (value / 1000) + 'k';
+                  return value;
+                }
+              }
+            }
+          }
         }
       });
     }
@@ -160,25 +268,46 @@
 
   // Live dark mode change listener
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    const textColor = getTextColor();
+    const separatorColor = getSeparatorColor();
+    const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() || '#ffffff';
+
     if (chartInstance) {
-      // Update font color and border color according to system theme change
-      const textColor = getTextColor();
       chartInstance.options.plugins.legend.labels.color = textColor;
-      
-      const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-card').trim() || '#ffffff';
       chartInstance.data.datasets[0].borderColor = borderColor;
-      
       chartInstance.update();
+    }
+
+    if (barChartInstance) {
+      barChartInstance.options.scales.x.ticks.color = textColor;
+      barChartInstance.options.scales.y.ticks.color = textColor;
+      barChartInstance.options.scales.y.grid.color = separatorColor;
+      
+      const barColors = [
+        getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#34C759',
+        getComputedStyle(document.documentElement).getPropertyValue('--red').trim() || '#FF3B30',
+        getComputedStyle(document.documentElement).getPropertyValue('--yellow').trim() || '#FFCC00'
+      ];
+      barChartInstance.data.datasets[0].backgroundColor = barColors;
+      
+      barChartInstance.update();
     }
   });
 
   // Expose to global scope
   window.expenseChart = {
-    update: updateChart,
+    update: function (incomes, expenses, savings) {
+      updateDoughnutChart(expenses);
+      updateBarChart(incomes, expenses, savings);
+    },
     destroy: () => {
       if (chartInstance) {
         chartInstance.destroy();
         chartInstance = null;
+      }
+      if (barChartInstance) {
+        barChartInstance.destroy();
+        barChartInstance = null;
       }
     }
   };

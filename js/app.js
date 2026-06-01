@@ -90,6 +90,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     titleEl.textContent = title;
     messageEl.textContent = message;
+
+    // Show title in red if it contains warning or error words
+    if (title.includes('Lỗi') || title.includes('Cảnh báo')) {
+      titleEl.classList.add('text-danger');
+    } else {
+      titleEl.classList.remove('text-danger');
+    }
+
     overlay.style.display = 'flex';
 
     // Clone button to strip previous event listeners cleanly
@@ -225,6 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('dashboard-total-income').textContent = formatVND(metrics.totalIncome);
     document.getElementById('dashboard-total-expense').textContent = formatVND(metrics.totalExpense);
     document.getElementById('dashboard-balance').textContent = formatVND(metrics.balance);
+    document.getElementById('dashboard-savings').textContent = formatVND(metrics.currentSavingsTotal);
 
     // 2. Render Budget Limit Progress Bar
     const progressBar = document.getElementById('budget-progress-bar');
@@ -250,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Render Chart
     if (window.expenseChart && typeof window.expenseChart.update === 'function') {
-      window.expenseChart.update(data.expenses);
+      window.expenseChart.update(data.incomes, data.expenses, data.savings);
     }
 
     // 4. Render Unified Transactions List
@@ -283,15 +292,17 @@ document.addEventListener('DOMContentLoaded', () => {
           amountClass = 'color-green text-right w-semibold';
         } else if (tx.type === 'expense') {
           // Dynamic class colors for expenses
-          let catClass = 'chip-red';
-          if (tx.detail === 'Học tập & Sinh hoạt') catClass = 'chip-green';
-          else if (tx.detail === 'Khác') catClass = '';
+          let catClass = '';
+          if (tx.detail === 'Ăn uống') catClass = 'chip-orange';
+          else if (tx.detail === 'Di chuyển') catClass = 'chip-accent';
+          else if (tx.detail === 'Học tập & Sinh hoạt') catClass = 'chip-purple';
+          else if (tx.detail === 'Giải trí') catClass = 'chip-red';
           
           typeBadge = `<span class="chip ${catClass}">${escapeHTML(tx.detail)}</span>`;
           amountText = `- ${formatVND(tx.amount)}`;
           amountClass = 'text-danger text-right w-semibold';
         } else if (tx.type === 'savings') {
-          typeBadge = '<span class="chip chip-purple">Tích lũy</span>';
+          typeBadge = '<span class="chip chip-yellow">Tích lũy</span>';
           amountText = `- ${formatVND(tx.amount)}`;
           amountClass = 'text-danger text-right w-semibold';
         }
@@ -335,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
       savingsRemainingDesc.innerHTML = '✨ <strong>Chúc mừng!</strong> Bạn đã hoàn thành xuất sắc mục tiêu tiết kiệm của tháng này!';
     } else {
       savingsStatusBadge.textContent = 'Đang tích lũy';
-      savingsStatusBadge.className = 'chip chip-accent';
+      savingsStatusBadge.className = 'chip chip-yellow';
       savingsRemainingDesc.innerHTML = `Còn thiếu: <strong>${formatVND(remainingSavings)}</strong> để hoàn thành mục tiêu tài chính của bạn.`;
     }
 

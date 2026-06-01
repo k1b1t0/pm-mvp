@@ -29,11 +29,11 @@
           <span class="nav-label">Tổng quan</span>
         </button>
         <button class="nav-item" id="nav-incomes" data-tab="tab-incomes" aria-label="Thu nhập">
-          <span class="nav-icon">💰</span>
+          <span class="nav-icon">📥</span>
           <span class="nav-label">Thêm thu nhập</span>
         </button>
         <button class="nav-item" id="nav-expenses" data-tab="tab-expenses" aria-label="Chi tiêu">
-          <span class="nav-icon">💸</span>
+          <span class="nav-icon">📤</span>
           <span class="nav-label">Thêm chi tiêu</span>
         </button>
         <button class="nav-item" id="nav-savings" data-tab="tab-savings" aria-label="Tiết kiệm & Cài đặt">
@@ -88,6 +88,12 @@
             <div class="metric-value" id="dashboard-balance">0 đ</div>
             <div class="metric-footer">Tiền khả dụng thực tế</div>
           </div>
+
+          <div class="metric-card savings-theme">
+            <div class="metric-label">Quỹ tiết kiệm</div>
+            <div class="metric-value" id="dashboard-savings">0 đ</div>
+            <div class="metric-footer">Tổng tích lũy hiện có</div>
+          </div>
         </div>
 
         <!-- Budget Limit Progress Bar -->
@@ -107,15 +113,31 @@
           </div>
         </div>
 
-        <!-- Chart Section -->
-        <div class="section-card">
-          <div class="section-card-header">
-            <h2 class="section-title">Phân rã chi phí theo danh mục</h2>
+        <!-- Charts Grid Section -->
+        <div class="charts-grid">
+          <!-- Doughnut Chart Card -->
+          <div class="section-card">
+            <div class="section-card-header">
+              <h2 class="section-title">Phân rã chi phí theo danh mục</h2>
+            </div>
+            <div class="chart-container">
+              <canvas id="expense-pie-chart" aria-label="Biểu đồ chi tiêu theo danh mục" role="img"></canvas>
+              <div id="no-chart-data-message" class="no-data-placeholder" style="display: none;">
+                <span>Chưa có dữ liệu chi tiêu để hiển thị biểu đồ. Hãy thêm khoản chi tiêu mới!</span>
+              </div>
+            </div>
           </div>
-          <div class="chart-container">
-            <canvas id="expense-pie-chart" aria-label="Biểu đồ chi tiêu theo danh mục" role="img"></canvas>
-            <div id="no-chart-data-message" class="no-data-placeholder" style="display: none;">
-              <span>Chưa có dữ liệu chi tiêu để hiển thị biểu đồ. Hãy thêm khoản chi tiêu mới!</span>
+
+          <!-- Comparison Bar Chart Card -->
+          <div class="section-card">
+            <div class="section-card-header">
+              <h2 class="section-title">So sánh thu, chi & tiết kiệm</h2>
+            </div>
+            <div class="chart-container">
+              <canvas id="comparison-bar-chart" aria-label="Biểu đồ so sánh dòng tiền" role="img"></canvas>
+              <div id="no-bar-chart-data-message" class="no-data-placeholder" style="display: none;">
+                <span>Chưa có dữ liệu giao dịch để so sánh.</span>
+              </div>
             </div>
           </div>
         </div>
@@ -320,9 +342,9 @@
                 <span class="error-msg" id="err-profile-savings-goal">Nhập mục tiêu tiết kiệm hợp lệ (>= 0)</span>
               </div>
               <div class="form-group">
-                <label for="profile-current-savings" class="form-label">Khoản tiết kiệm ban đầu (VNĐ)</label>
+                <label for="profile-current-savings" class="form-label">Số dư tiết kiệm khởi tạo (VNĐ)</label>
                 <input type="number" id="profile-current-savings" class="input" min="0" placeholder="Ví dụ: 500000" required>
-                <span class="error-msg" id="err-profile-current-savings">Nhập khoản tiết kiệm hiện tại hợp lệ (>= 0)</span>
+                <span class="error-msg" id="err-profile-current-savings">Nhập số dư tiết kiệm hợp lệ (>= 0)</span>
               </div>
             </div>
             <div class="form-actions">
