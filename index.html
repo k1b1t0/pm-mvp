@@ -29,11 +29,11 @@
           <span class="nav-label">Tổng quan</span>
         </button>
         <button class="nav-item" id="nav-incomes" data-tab="tab-incomes" aria-label="Thu nhập">
-          <span class="nav-icon">📥</span>
+          <span class="nav-icon">🟢</span>
           <span class="nav-label">Thêm thu nhập</span>
         </button>
         <button class="nav-item" id="nav-expenses" data-tab="tab-expenses" aria-label="Chi tiêu">
-          <span class="nav-icon">📤</span>
+          <span class="nav-icon">🔴</span>
           <span class="nav-label">Thêm chi tiêu</span>
         </button>
         <button class="nav-item" id="nav-savings" data-tab="tab-savings" aria-label="Tiết kiệm & Cài đặt">
@@ -149,6 +149,14 @@
             <span class="section-badge" id="transaction-count-badge">0 giao dịch</span>
           </div>
           <div class="list-card-container">
+            <div class="table-filters-container">
+              <div class="table-filters" id="filters-unified">
+                <button class="filter-btn active" data-filter="all" data-table="unified">Tất cả</button>
+                <button class="filter-btn" data-filter="day" data-table="unified">Ngày</button>
+                <button class="filter-btn" data-filter="month" data-table="unified">Tháng</button>
+                <button class="filter-btn" data-filter="year" data-table="unified">Năm</button>
+              </div>
+            </div>
             <div class="table-responsive">
               <table class="apple-table" id="transaction-table">
                 <thead>
@@ -213,6 +221,43 @@
             </div>
           </form>
         </div>
+
+        <!-- Income History Table -->
+        <div class="section-card">
+          <div class="section-card-header">
+            <h2 class="section-title">Lịch sử thu nhập</h2>
+            <span class="section-badge" id="income-count-badge">0 giao dịch</span>
+          </div>
+          <div class="list-card-container">
+            <div class="table-filters-container">
+              <div class="table-filters" id="filters-income">
+                <button class="filter-btn active" data-filter="all" data-table="income">Tất cả</button>
+                <button class="filter-btn" data-filter="day" data-table="income">Ngày</button>
+                <button class="filter-btn" data-filter="month" data-table="income">Tháng</button>
+                <button class="filter-btn" data-filter="year" data-table="income">Năm</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="apple-table" id="income-table">
+                <thead>
+                  <tr>
+                    <th>Ngày</th>
+                    <th>Nguồn thu</th>
+                    <th>Nội dung</th>
+                    <th class="text-right">Số tiền</th>
+                    <th class="text-center">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="income-list-tbody">
+                  <!-- Dynamic rows go here -->
+                </tbody>
+              </table>
+            </div>
+            <div id="no-income-placeholder" class="no-data-placeholder" style="display: none;">
+              <span>Chưa có khoản thu nhập nào được ghi nhận.</span>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- Module 3: Expense Manager Section (Forms only) -->
@@ -261,6 +306,43 @@
               <button type="submit" id="submit-expense-btn" class="btn btn-primary">Ghi nhận chi tiêu</button>
             </div>
           </form>
+        </div>
+
+        <!-- Expense History Table -->
+        <div class="section-card">
+          <div class="section-card-header">
+            <h2 class="section-title">Lịch sử chi tiêu</h2>
+            <span class="section-badge" id="expense-count-badge">0 giao dịch</span>
+          </div>
+          <div class="list-card-container">
+            <div class="table-filters-container">
+              <div class="table-filters" id="filters-expense">
+                <button class="filter-btn active" data-filter="all" data-table="expense">Tất cả</button>
+                <button class="filter-btn" data-filter="day" data-table="expense">Ngày</button>
+                <button class="filter-btn" data-filter="month" data-table="expense">Tháng</button>
+                <button class="filter-btn" data-filter="year" data-table="expense">Năm</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="apple-table" id="expense-table">
+                <thead>
+                  <tr>
+                    <th>Ngày</th>
+                    <th>Danh mục</th>
+                    <th>Nội dung</th>
+                    <th class="text-right">Số tiền</th>
+                    <th class="text-center">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="expense-list-tbody">
+                  <!-- Dynamic rows go here -->
+                </tbody>
+              </table>
+            </div>
+            <div id="no-expense-placeholder" class="no-data-placeholder" style="display: none;">
+              <span>Chưa có khoản chi tiêu nào được ghi nhận.</span>
+            </div>
+          </div>
         </div>
       </section>
 

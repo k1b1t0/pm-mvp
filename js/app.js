@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const defaultData = {
     profile: {
-      monthly_budget_limit: 5000000,
+      monthly_budget_limit: 10000000,
       savings_goal: 2000000,
       current_savings: 500000
     },
@@ -31,6 +31,11 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   let appState = null;
+  const activeFilters = {
+    unified: 'all',
+    income: 'all',
+    expense: 'all'
+  };
 
   // --- LocalStorage Helpers ---
   function initStorage() {
@@ -77,6 +82,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const parts = dateStr.split('-');
     if (parts.length !== 3) return dateStr;
     return `${parts[2]}/${parts[1]}/${parts[0]}`; // Convert YYYY-MM-DD to DD/MM/YYYY
+  }
+
+  function filterTransactionsByDate(list, filterType) {
+    if (filterType === 'all') return list;
+
+    // Get current date parts in local timezone to avoid UTC shifting
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    
+    const todayStr = `${yyyy}-${mm}-${dd}`;
+    const monthStr = `${yyyy}-${mm}`;
+    const yearStr = `${yyyy}`;
+
+    return list.filter(tx => {
+      if (!tx.date) return false;
+      if (filterType === 'day') {
+        return tx.date === todayStr;
+      } else if (filterType === 'month') {
+        return tx.date.startsWith(monthStr);
+      } else if (filterType === 'year') {
+        return tx.date.startsWith(yearStr);
+      }
+      return true;
+    });
   }
 
   // --- Custom Modals (Apple UI Style) ---
@@ -221,8 +252,8 @@ document.addEventListener('DOMContentLoaded', () => {
       tx.progressiveBalance = runningBalance;
     });
 
-    // Reverse to display newest first
-    return list.reverse();
+    // Keep chronological order (oldest first)
+    return list;
   }
 
   function renderApp() {
@@ -262,24 +293,45 @@ document.addEventListener('DOMContentLoaded', () => {
       window.expenseChart.update(data.incomes, data.expenses, data.savings);
     }
 
-    // 4. Render Unified Transactions List
+    // 4. Render Unified Transactions List (Dashboard)
     const unifiedList = getUnifiedTransactions(data);
+    const filteredUnified = filterTransactionsByDate(unifiedList, activeFilters.unified);
     const tbody = document.getElementById('transaction-list-tbody');
     const placeholder = document.getElementById('no-transaction-placeholder');
     const table = document.getElementById('transaction-table');
     const countBadge = document.getElementById('transaction-count-badge');
     
     tbody.innerHTML = '';
-    countBadge.textContent = `${unifiedList.length} giao dịch`;
+    countBadge.textContent = `${filteredUnified.length} giao dịch`;
 
-    if (unifiedList.length === 0) {
+    if (filteredUnified.length === 0) {
       table.style.display = 'none';
       placeholder.style.display = 'flex';
     } else {
       table.style.display = 'table';
       placeholder.style.display = 'none';
 
-      unifiedList.forEach(tx => {
+      // Summary Row for Unified Table
+      const totalPeriodIncome = filteredUnified.reduce((sum, tx) => sum + (tx.type === 'income' ? tx.amount : 0), 0);
+      const totalPeriodExpense = filteredUnified.reduce((sum, tx) => sum + (tx.type === 'expense' ? tx.amount : 0), 0);
+      const totalPeriodSavings = filteredUnified.reduce((sum, tx) => sum + (tx.type === 'savings' ? tx.amount : 0), 0);
+
+      const summaryTr = document.createElement('tr');
+      summaryTr.className = 'summary-row';
+      summaryTr.innerHTML = `
+        <td class="w-semibold">TỔNG CỘNG</td>
+        <td></td>
+        <td></td>
+        <td class="text-right">
+          <div class="color-green w-semibold" style="display:inline-block; margin-right:4px;">+${formatVND(totalPeriodIncome)}</div>
+          <div class="text-danger w-semibold" style="display:inline-block;">-${formatVND(totalPeriodExpense + totalPeriodSavings)}</div>
+        </td>
+        <td></td>
+        <td></td>
+      `;
+      tbody.appendChild(summaryTr);
+
+      filteredUnified.forEach(tx => {
         const tr = document.createElement('tr');
         
         let typeBadge = '';
@@ -291,7 +343,6 @@ document.addEventListener('DOMContentLoaded', () => {
           amountText = `+ ${formatVND(tx.amount)}`;
           amountClass = 'color-green text-right w-semibold';
         } else if (tx.type === 'expense') {
-          // Dynamic class colors for expenses
           let catClass = '';
           if (tx.detail === 'Ăn uống') catClass = 'chip-orange';
           else if (tx.detail === 'Di chuyển') catClass = 'chip-accent';
@@ -320,6 +371,111 @@ document.addEventListener('DOMContentLoaded', () => {
           </td>
         `;
         tbody.appendChild(tr);
+      });
+    }
+
+    // 4b. Render Incomes History List
+    const incomeList = unifiedList.filter(tx => tx.type === 'income');
+    const filteredIncomes = filterTransactionsByDate(incomeList, activeFilters.income);
+    const incomeTbody = document.getElementById('income-list-tbody');
+    const incomePlaceholder = document.getElementById('no-income-placeholder');
+    const incomeTable = document.getElementById('income-table');
+    const incomeCountBadge = document.getElementById('income-count-badge');
+
+    incomeTbody.innerHTML = '';
+    incomeCountBadge.textContent = `${filteredIncomes.length} khoản thu`;
+
+    if (filteredIncomes.length === 0) {
+      incomeTable.style.display = 'none';
+      incomePlaceholder.style.display = 'flex';
+    } else {
+      incomeTable.style.display = 'table';
+      incomePlaceholder.style.display = 'none';
+
+      // Summary Row
+      const totalPeriodIncome = filteredIncomes.reduce((sum, tx) => sum + tx.amount, 0);
+      const summaryTr = document.createElement('tr');
+      summaryTr.className = 'summary-row';
+      summaryTr.innerHTML = `
+        <td class="w-semibold">TỔNG CỘNG</td>
+        <td></td>
+        <td></td>
+        <td class="color-green text-right w-semibold">+ ${formatVND(totalPeriodIncome)}</td>
+        <td></td>
+      `;
+      incomeTbody.appendChild(summaryTr);
+
+      filteredIncomes.forEach(tx => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${formatDate(tx.date)}</td>
+          <td class="w-semibold">${escapeHTML(tx.detail)}</td>
+          <td>${escapeHTML(tx.title)}</td>
+          <td class="color-green text-right w-semibold">+ ${formatVND(tx.amount)}</td>
+          <td class="text-center">
+            <button class="action-btn delete-action" data-id="${tx.id}" aria-label="Xóa giao dịch">
+              🗑️
+            </button>
+          </td>
+        `;
+        incomeTbody.appendChild(tr);
+      });
+    }
+
+    // 4c. Render Expenses History List
+    const expenseList = unifiedList.filter(tx => tx.type === 'expense');
+    const filteredExpenses = filterTransactionsByDate(expenseList, activeFilters.expense);
+    const expenseTbody = document.getElementById('expense-list-tbody');
+    const expensePlaceholder = document.getElementById('no-expense-placeholder');
+    const expenseTable = document.getElementById('expense-table');
+    const expenseCountBadge = document.getElementById('expense-count-badge');
+
+    expenseTbody.innerHTML = '';
+    expenseCountBadge.textContent = `${filteredExpenses.length} khoản chi`;
+
+    if (filteredExpenses.length === 0) {
+      expenseTable.style.display = 'none';
+      expensePlaceholder.style.display = 'flex';
+    } else {
+      expenseTable.style.display = 'table';
+      expensePlaceholder.style.display = 'none';
+
+      // Summary Row
+      const totalPeriodExpense = filteredExpenses.reduce((sum, tx) => sum + tx.amount, 0);
+      const summaryTr = document.createElement('tr');
+      summaryTr.className = 'summary-row';
+      summaryTr.innerHTML = `
+        <td class="w-semibold">TỔNG CỘNG</td>
+        <td></td>
+        <td></td>
+        <td class="text-danger text-right w-semibold">-${formatVND(totalPeriodExpense)}</td>
+        <td></td>
+      `;
+      expenseTbody.appendChild(summaryTr);
+
+      filteredExpenses.forEach(tx => {
+        const tr = document.createElement('tr');
+        
+        let catClass = '';
+        if (tx.detail === 'Ăn uống') catClass = 'chip-orange';
+        else if (tx.detail === 'Di chuyển') catClass = 'chip-accent';
+        else if (tx.detail === 'Học tập & Sinh hoạt') catClass = 'chip-purple';
+        else if (tx.detail === 'Giải trí') catClass = 'chip-red';
+
+        const typeBadge = `<span class="chip ${catClass}">${escapeHTML(tx.detail)}</span>`;
+
+        tr.innerHTML = `
+          <td>${formatDate(tx.date)}</td>
+          <td>${typeBadge}</td>
+          <td class="w-semibold">${escapeHTML(tx.title)}</td>
+          <td class="text-danger text-right w-semibold">-${formatVND(tx.amount)}</td>
+          <td class="text-center">
+            <button class="action-btn delete-action" data-id="${tx.id}" aria-label="Xóa giao dịch">
+              🗑️
+            </button>
+          </td>
+        `;
+        expenseTbody.appendChild(tr);
       });
     }
 
@@ -675,6 +831,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Filter Button Click handler
+  document.addEventListener('click', (e) => {
+    const filterBtn = e.target.closest('.filter-btn');
+    if (!filterBtn) return;
+
+    const tableName = filterBtn.getAttribute('data-table');
+    const filterValue = filterBtn.getAttribute('data-filter');
+    if (!tableName || !filterValue) return;
+
+    activeFilters[tableName] = filterValue;
+
+    // Toggle active class inside the specific filter group
+    const parentFilters = filterBtn.closest('.table-filters');
+    if (parentFilters) {
+      parentFilters.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      filterBtn.classList.add('active');
+    }
+
+    renderApp();
+  });
+
   // Warning Banner Close Button
   const closeWarningBtn = document.getElementById('close-warning-btn');
   if (closeWarningBtn) {
@@ -693,6 +872,17 @@ document.addEventListener('DOMContentLoaded', () => {
         'Hành động này sẽ xóa sạch dữ liệu thu chi, gửi tiết kiệm và đưa cấu hình về mặc định. Bạn có chắc chắn muốn thực hiện?',
         () => {
           localStorage.removeItem(STORAGE_KEY);
+          activeFilters.unified = 'all';
+          activeFilters.income = 'all';
+          activeFilters.expense = 'all';
+          
+          document.querySelectorAll('.table-filters').forEach(group => {
+            group.querySelectorAll('.filter-btn').forEach((btn, idx) => {
+              if (idx === 0) btn.classList.add('active');
+              else btn.classList.remove('active');
+            });
+          });
+
           initStorage();
           renderApp();
           showAppleAlert('Đã đặt lại', 'Hệ thống đã được đưa về trạng thái dữ liệu mẫu ban đầu.');

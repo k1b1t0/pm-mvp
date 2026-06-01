@@ -516,6 +516,51 @@ body {
   text-align: center;
 }
 
+/* Table Filters & Segmented Control */
+.table-filters-container {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: var(--s3);
+  padding: 0 var(--s3);
+}
+
+.table-filters {
+  display: inline-flex;
+  background: var(--fill-3);
+  padding: 2px;
+  border-radius: var(--r-md);
+}
+
+.filter-btn {
+  background: transparent;
+  border: none;
+  font-family: var(--font);
+  font-size: var(--text-xs);
+  font-weight: var(--w-semibold);
+  color: var(--label-2);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+
+.filter-btn.active {
+  background: var(--bg-card);
+  color: var(--label);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Summary Row styling */
+.apple-table tr.summary-row td {
+  background: var(--fill-2);
+  font-weight: var(--w-bold);
+  border-bottom: 2px solid var(--separator);
+}
+
+.apple-table tr.summary-row:hover td {
+  background: var(--fill-2);
+}
+
 /* Forms & Inputs */
 .form-card {
   background: var(--bg-card);
