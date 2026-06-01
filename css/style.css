@@ -331,7 +331,7 @@ body {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--s4);
-  margin-bottom: var(--s2);
+  margin-bottom: var(--s6);
 }
 
 .metric-card {
@@ -532,6 +532,11 @@ body {
   color: var(--label-3);
 }
 
+select.input option {
+  background: var(--bg-card);
+  color: var(--label);
+}
+
 /* Form Actions */
 .form-actions {
   display: flex;
@@ -687,6 +692,11 @@ body {
   color: var(--accent);
 }
 
+.chip-purple {
+  background: rgba(88, 86, 214, 0.12);
+  color: var(--blue-theme);
+}
+
 /* Danger Zone Box styling */
 .border-danger {
   border: 1px solid var(--red);
@@ -695,6 +705,10 @@ body {
 
 .text-danger {
   color: var(--red);
+}
+
+.color-green {
+  color: var(--green);
 }
 
 .danger-zone-desc {

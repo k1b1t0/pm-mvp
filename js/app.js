@@ -26,7 +26,8 @@ document.addEventListener('DOMContentLoaded', () => {
         category: "Học tập & Sinh hoạt",
         date: "2026-06-01"
       }
-    ]
+    ],
+    savings: []
   };
 
   let appState = null;
@@ -43,6 +44,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ensure structure is correct
         if (!appState.profile || !appState.incomes || !appState.expenses) {
           appState = JSON.parse(JSON.stringify(defaultData));
+          saveAppData();
+        }
+        if (!appState.savings) {
+          appState.savings = [];
           saveAppData();
         }
       } catch (e) {
@@ -133,12 +138,83 @@ document.addEventListener('DOMContentLoaded', () => {
     const data = getAppData();
     const totalIncome = data.incomes.reduce((sum, inc) => sum + Number(inc.amount || 0), 0);
     const totalExpense = data.expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
-    const balance = totalIncome - totalExpense;
+    const totalSavingsTx = (data.savings || []).reduce((sum, sav) => sum + Number(sav.amount || 0), 0);
+    
+    // Số dư hiện tại = Tổng thu nhập - Tổng chi tiêu - Tổng tiền gửi tiết kiệm
+    const balance = totalIncome - totalExpense - totalSavingsTx;
     
     const limit = Number(data.profile.monthly_budget_limit) || 0;
     const budgetRatio = limit > 0 ? (totalExpense / limit) * 100 : 0;
 
-    return { totalIncome, totalExpense, balance, budgetRatio, limit };
+    // Tổng tích lũy = Tiết kiệm ban đầu + Các khoản trích gửi tiết kiệm
+    const currentSavingsTotal = (Number(data.profile.current_savings) || 0) + totalSavingsTx;
+
+    return { totalIncome, totalExpense, balance, budgetRatio, limit, totalSavingsTx, currentSavingsTotal };
+  }
+
+  // Calculate chronological unified transactions with running balance
+  function getUnifiedTransactions(data) {
+    const list = [];
+    
+    // Incomes
+    data.incomes.forEach(inc => {
+      list.push({
+        id: inc.id,
+        date: inc.date,
+        type: 'income',
+        title: inc.title,
+        detail: inc.source,
+        amount: Number(inc.amount || 0)
+      });
+    });
+
+    // Expenses
+    data.expenses.forEach(exp => {
+      list.push({
+        id: exp.id,
+        date: exp.date,
+        type: 'expense',
+        title: exp.title,
+        detail: exp.category,
+        amount: Number(exp.amount || 0)
+      });
+    });
+
+    // Savings Transactions
+    (data.savings || []).forEach(sav => {
+      list.push({
+        id: sav.id,
+        date: sav.date,
+        type: 'savings',
+        title: sav.title,
+        detail: 'Tích lũy',
+        amount: Number(sav.amount || 0)
+      });
+    });
+
+    // Sort chronologically (oldest first)
+    list.sort((a, b) => {
+      const dateDiff = new Date(a.date) - new Date(b.date);
+      if (dateDiff !== 0) return dateDiff;
+      // Secondary sort preserving insertion order via id timestamp
+      const timeA = Number(a.id.split('_')[1]) || 0;
+      const timeB = Number(b.id.split('_')[1]) || 0;
+      return timeA - timeB;
+    });
+
+    // Calculate progressive balance
+    let runningBalance = 0;
+    list.forEach(tx => {
+      if (tx.type === 'income') {
+        runningBalance += tx.amount;
+      } else {
+        runningBalance -= tx.amount;
+      }
+      tx.progressiveBalance = runningBalance;
+    });
+
+    // Reverse to display newest first
+    return list.reverse();
   }
 
   function renderApp() {
@@ -177,87 +253,67 @@ document.addEventListener('DOMContentLoaded', () => {
       window.expenseChart.update(data.expenses);
     }
 
-    // 4. Render Income List
-    const incomeTbody = document.getElementById('income-list-tbody');
-    const noIncomePlaceholder = document.getElementById('no-income-placeholder');
-    const incomeTable = document.getElementById('income-table');
-    const incomeCountBadge = document.getElementById('income-count-badge');
+    // 4. Render Unified Transactions List
+    const unifiedList = getUnifiedTransactions(data);
+    const tbody = document.getElementById('transaction-list-tbody');
+    const placeholder = document.getElementById('no-transaction-placeholder');
+    const table = document.getElementById('transaction-table');
+    const countBadge = document.getElementById('transaction-count-badge');
     
-    incomeTbody.innerHTML = '';
-    incomeCountBadge.textContent = `${data.incomes.length} mục`;
+    tbody.innerHTML = '';
+    countBadge.textContent = `${unifiedList.length} giao dịch`;
 
-    if (data.incomes.length === 0) {
-      incomeTable.style.display = 'none';
-      noIncomePlaceholder.style.display = 'flex';
+    if (unifiedList.length === 0) {
+      table.style.display = 'none';
+      placeholder.style.display = 'flex';
     } else {
-      incomeTable.style.display = 'table';
-      noIncomePlaceholder.style.display = 'none';
+      table.style.display = 'table';
+      placeholder.style.display = 'none';
 
-      // Sort incomes by date descending
-      const sortedIncomes = [...data.incomes].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      sortedIncomes.forEach(inc => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${formatDate(inc.date)}</td>
-          <td class="w-semibold">${escapeHTML(inc.title)}</td>
-          <td><span class="chip">${escapeHTML(inc.source)}</span></td>
-          <td class="text-right w-semibold color-green">+ ${formatVND(inc.amount)}</td>
-          <td class="text-center">
-            <button class="action-btn delete-action" data-id="${inc.id}" aria-label="Xóa khoản thu">
-              🗑️
-            </button>
-          </td>
-        `;
-        incomeTbody.appendChild(tr);
-      });
-    }
-
-    // 5. Render Expense List
-    const expenseTbody = document.getElementById('expense-list-tbody');
-    const noExpensePlaceholder = document.getElementById('no-expense-placeholder');
-    const expenseTable = document.getElementById('expense-table');
-    const expenseCountBadge = document.getElementById('expense-count-badge');
-
-    expenseTbody.innerHTML = '';
-    expenseCountBadge.textContent = `${data.expenses.length} mục`;
-
-    if (data.expenses.length === 0) {
-      expenseTable.style.display = 'none';
-      noExpensePlaceholder.style.display = 'flex';
-    } else {
-      expenseTable.style.display = 'table';
-      noExpensePlaceholder.style.display = 'none';
-
-      // Sort expenses by date descending
-      const sortedExpenses = [...data.expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      sortedExpenses.forEach(exp => {
+      unifiedList.forEach(tx => {
         const tr = document.createElement('tr');
         
-        // Dynamic chip theme for categories
-        let chipClass = 'chip-accent';
-        if (exp.category === 'Ăn uống') chipClass = 'chip-red';
-        else if (exp.category === 'Học tập & Sinh hoạt') chipClass = 'chip-green';
-        else if (exp.category === 'Khác') chipClass = '';
+        let typeBadge = '';
+        let amountText = '';
+        let amountClass = '';
+        
+        if (tx.type === 'income') {
+          typeBadge = '<span class="chip chip-green">Thu nhập</span>';
+          amountText = `+ ${formatVND(tx.amount)}`;
+          amountClass = 'color-green text-right w-semibold';
+        } else if (tx.type === 'expense') {
+          // Dynamic class colors for expenses
+          let catClass = 'chip-red';
+          if (tx.detail === 'Học tập & Sinh hoạt') catClass = 'chip-green';
+          else if (tx.detail === 'Khác') catClass = '';
+          
+          typeBadge = `<span class="chip ${catClass}">${escapeHTML(tx.detail)}</span>`;
+          amountText = `- ${formatVND(tx.amount)}`;
+          amountClass = 'text-danger text-right w-semibold';
+        } else if (tx.type === 'savings') {
+          typeBadge = '<span class="chip chip-purple">Tích lũy</span>';
+          amountText = `- ${formatVND(tx.amount)}`;
+          amountClass = 'text-danger text-right w-semibold';
+        }
 
         tr.innerHTML = `
-          <td>${formatDate(exp.date)}</td>
-          <td class="w-semibold">${escapeHTML(exp.title)}</td>
-          <td><span class="chip ${chipClass}">${escapeHTML(exp.category)}</span></td>
-          <td class="text-right w-semibold text-danger">- ${formatVND(exp.amount)}</td>
+          <td>${formatDate(tx.date)}</td>
+          <td>${typeBadge}</td>
+          <td class="w-semibold">${escapeHTML(tx.title)}</td>
+          <td class="${amountClass}">${amountText}</td>
+          <td class="text-right w-semibold">${formatVND(tx.progressiveBalance)}</td>
           <td class="text-center">
-            <button class="action-btn delete-action" data-id="${exp.id}" aria-label="Xóa khoản chi">
+            <button class="action-btn delete-action" data-id="${tx.id}" aria-label="Xóa giao dịch">
               🗑️
             </button>
           </td>
         `;
-        expenseTbody.appendChild(tr);
+        tbody.appendChild(tr);
       });
     }
 
-    // 6. Render Savings Tab
-    const currentSavings = Number(data.profile.current_savings) || 0;
+    // 5. Render Savings Tab Progress
+    const currentSavings = metrics.currentSavingsTotal;
     const savingsGoal = Number(data.profile.savings_goal) || 0;
     const savingsProgress = document.getElementById('savings-progress-bar');
     const currentSavingsVal = document.getElementById('savings-current-val');
@@ -283,12 +339,12 @@ document.addEventListener('DOMContentLoaded', () => {
       savingsRemainingDesc.innerHTML = `Còn thiếu: <strong>${formatVND(remainingSavings)}</strong> để hoàn thành mục tiêu tài chính của bạn.`;
     }
 
-    // 7. Update Inputs in settings form
+    // 6. Update Inputs in settings form
     document.getElementById('profile-budget-limit').value = data.profile.monthly_budget_limit;
     document.getElementById('profile-savings-goal').value = data.profile.savings_goal;
     document.getElementById('profile-current-savings').value = data.profile.current_savings;
 
-    // 8. Update Current Date Subtitle
+    // 7. Update Current Date Subtitle
     const now = new Date();
     const monthYearStr = `Tháng ${now.getMonth() + 1}, ${now.getFullYear()}`;
     document.getElementById('current-date-subtitle').textContent = monthYearStr;
@@ -296,6 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Form Validation Helpers ---
   function validateFormGroup(groupEl, isValid) {
+    if (!groupEl) return isValid;
     if (isValid) {
       groupEl.classList.remove('invalid');
     } else {
@@ -323,8 +380,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const todayStr = new Date().toISOString().split('T')[0];
     const incomeDate = document.getElementById('income-date');
     const expenseDate = document.getElementById('expense-date');
+    const savingsDate = document.getElementById('savings-date');
     if (incomeDate) incomeDate.value = todayStr;
     if (expenseDate) expenseDate.value = todayStr;
+    if (savingsDate) savingsDate.value = todayStr;
   }
 
   // --- Event Listeners & Event Delegation ---
@@ -346,10 +405,8 @@ document.addEventListener('DOMContentLoaded', () => {
         targetSection.classList.add('active');
       }
       
-      // Special logic when returning to Dashboard to refresh Chart
-      if (targetTab === 'tab-dashboard') {
-        renderApp();
-      }
+      // Refresh render
+      renderApp();
     });
   });
 
@@ -374,12 +431,11 @@ document.addEventListener('DOMContentLoaded', () => {
     isFormValid = validateFormGroup(titleGroup, titleInput.value.trim() !== '') && isFormValid;
     isFormValid = validateFormGroup(sourceGroup, sourceInput.value.trim() !== '') && isFormValid;
     
-    // Strict parsing logic to prevent numbers from being parsed as strings
     const amountVal = Number(amountInput.value);
     isFormValid = validateFormGroup(amountGroup, !isNaN(amountVal) && amountVal > 0) && isFormValid;
     isFormValid = validateFormGroup(dateGroup, dateInput.value !== '') && isFormValid;
 
-    if (!isFormValid) return;
+    if (!isFormValid) return; // Keep form data!
 
     // Push new income
     const data = getAppData();
@@ -395,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
     saveAppData();
     renderApp();
 
-    // Reset inputs
+    // Reset inputs only on success
     titleInput.value = '';
     sourceInput.value = '';
     amountInput.value = '';
@@ -426,13 +482,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     isFormValid = validateFormGroup(titleGroup, titleInput.value.trim() !== '') && isFormValid;
     
-    // Strict parsing
     const amountVal = Number(amountInput.value);
     isFormValid = validateFormGroup(amountGroup, !isNaN(amountVal) && amountVal > 0) && isFormValid;
     isFormValid = validateFormGroup(categoryGroup, categorySelect.value !== '') && isFormValid;
     isFormValid = validateFormGroup(dateGroup, dateInput.value !== '') && isFormValid;
 
-    if (!isFormValid) return;
+    if (!isFormValid) return; // Keep form data!
+
+    // Check balance to prevent negative balance
+    const metrics = calculateMetrics();
+    if (amountVal > metrics.balance) {
+      showAppleAlert('Lỗi số dư', 'Tài khoản không đủ số dư để thực hiện giao dịch này!');
+      return; // Keep form data!
+    }
 
     const data = getAppData();
     const newExpense = {
@@ -447,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
     saveAppData();
     renderApp();
 
-    // Reset inputs
+    // Reset inputs only on success
     titleInput.value = '';
     amountInput.value = '';
     categorySelect.value = '';
@@ -456,12 +518,58 @@ document.addEventListener('DOMContentLoaded', () => {
     [titleGroup, amountGroup, categoryGroup, dateGroup].forEach(g => g.classList.remove('invalid'));
 
     // Check if total expense exceeds limit and trigger warnings
-    const metrics = calculateMetrics();
-    if (metrics.budgetRatio >= 100) {
+    const newMetrics = calculateMetrics();
+    if (newMetrics.budgetRatio >= 100) {
       showAppleAlert('Cảnh báo ngân sách', 'Bạn đã chi tiêu vượt quá hạn mức cho phép của tháng này!');
     } else {
       showAppleAlert('Thành công', 'Khoản chi tiêu đã được ghi nhận!');
     }
+  });
+
+  // Savings Form Submit (Gửi tiết kiệm)
+  const savingsForm = document.getElementById('savings-form');
+  savingsForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const amountInput = document.getElementById('savings-amount');
+    const dateInput = document.getElementById('savings-date');
+
+    const amountGroup = amountInput.closest('.form-group');
+    const dateGroup = dateInput.closest('.form-group');
+
+    let isFormValid = true;
+    const amountVal = Number(amountInput.value);
+    isFormValid = validateFormGroup(amountGroup, !isNaN(amountVal) && amountVal > 0) && isFormValid;
+    isFormValid = validateFormGroup(dateGroup, dateInput.value !== '') && isFormValid;
+
+    if (!isFormValid) return; // Keep form data!
+
+    // Check balance to prevent negative balance
+    const metrics = calculateMetrics();
+    if (amountVal > metrics.balance) {
+      showAppleAlert('Lỗi số dư', 'Tài khoản không đủ số dư để thực hiện giao dịch này!');
+      return; // Keep form data!
+    }
+
+    const data = getAppData();
+    const newSavings = {
+      id: "sav_" + Date.now(),
+      title: "Trích quỹ tiết kiệm tháng",
+      amount: amountVal,
+      date: dateInput.value
+    };
+
+    data.savings.push(newSavings);
+    saveAppData();
+    renderApp();
+
+    // Reset inputs on success
+    amountInput.value = '';
+    setDefaultFormDates();
+
+    [amountGroup, dateGroup].forEach(g => g.classList.remove('invalid'));
+
+    showAppleAlert('Thành công', 'Đã trích quỹ gửi tiết kiệm thành công!');
   });
 
   // Profile/Settings Form Submit
@@ -479,7 +587,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let isFormValid = true;
 
-    // Strict validation and conversion to numbers
     const limitVal = Number(limitInput.value);
     isFormValid = validateFormGroup(limitGroup, !isNaN(limitVal) && limitVal >= 0 && limitInput.value !== '') && isFormValid;
 
@@ -540,6 +647,20 @@ document.addEventListener('DOMContentLoaded', () => {
           showAppleAlert('Đã xóa', 'Đã xóa khoản chi tiêu.');
         }
       );
+    } else if (itemId.startsWith('sav_')) {
+      const item = (data.savings || []).find(s => s.id === itemId);
+      const title = item ? item.title : 'giao dịch';
+
+      showAppleConfirm(
+        'Xác nhận xóa', 
+        `Bạn có chắc chắn muốn xóa giao dịch tích lũy "${title}" không?`, 
+        () => {
+          data.savings = data.savings.filter(s => s.id !== itemId);
+          saveAppData();
+          renderApp();
+          showAppleAlert('Đã xóa', 'Đã xóa khoản tích lũy.');
+        }
+      );
     }
   });
 
@@ -558,7 +679,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       showAppleConfirm(
         'Đặt lại dữ liệu', 
-        'Hành động này sẽ xóa sạch dữ liệu thu chi và đưa cấu hình về mặc định. Bạn có chắc chắn muốn thực hiện?',
+        'Hành động này sẽ xóa sạch dữ liệu thu chi, gửi tiết kiệm và đưa cấu hình về mặc định. Bạn có chắc chắn muốn thực hiện?',
         () => {
           localStorage.removeItem(STORAGE_KEY);
           initStorage();
